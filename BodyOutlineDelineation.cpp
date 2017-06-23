@@ -17,7 +17,7 @@ using namespace std;
 
 int main(int argc, char ** argv)
 {
-	if (argc < 2)
+	if (argc < 3)
 	{
 		std::cerr << "no enough input parameters!";
 		return 1;
@@ -27,18 +27,8 @@ int main(int argc, char ** argv)
 	BodyClassWrapper bodyClassWrp(imgwrp);
 	ImageWrapper* outputImg = bodyClassWrp.runSegmentation();
 
-	std::string::size_type pointPos = filename.find_last_of('.');
-	std::string resName;
-	if (pointPos != filename.npos)
-	{
-		resName = filename.substr(0,pointPos);
-		resName += "Result.nrrd";
-	}
-	else
-	{
-		resName += "Result.nrrd";
-	}
 
-	outputImg->saveImage(resName);
+	std::string outputFileName = std::string(argv[2]);
+	outputImg->saveImage(outputFileName);
 	return 0;
 }
