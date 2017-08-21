@@ -5,4 +5,5 @@ At the moment the algorithm works well for abdomen and thorax CT images. For hea
 The algorithm reads and writes NRRD-images.
 
 Call the algorithm as follows:
+
     ./BodyOutlineDelineation InputImageName.nrrd OutputImageName.nrrd
