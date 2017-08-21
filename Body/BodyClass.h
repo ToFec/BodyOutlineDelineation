@@ -729,11 +729,17 @@ typename SegmentationImageType::Pointer BodyClass<ImageType,
 					binaryImageToShapeLabelMapFilter2D->GetOutput()->GetNthLabelObject(
 							labelID);
 			labelsArrayToRemove2D.push_back(labelObject->GetLabel());
-			if (labelObject->GetNumberOfPixels() > largestLabelSize)
+			int nuOfPixs = labelObject->GetNumberOfPixels();
+			if (nuOfPixs > largestLabelSize)
 			{
-				largestLabelID = labelID;
+				largestLabelID = labelObject->GetLabel();
+				largestLabelSize = nuOfPixs;
 			}
 		}
+
+#ifdef __DEBUG
+		std::cout << "largestLabelID " << largestLabelID << std::endl;
+#endif
 
 		// Remove all the other Labels
 		std::vector<int>::iterator iterLabel = labelsArrayToRemove2D.begin();
