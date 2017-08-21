@@ -30,6 +30,8 @@
 #include <fstream>
 #include <iostream>
 
+#define __DEBUG
+
 template<typename ImageType, typename SegmentationImageType>
 class BodyClass
 {
@@ -76,13 +78,16 @@ typename SegmentationImageType::Pointer BodyClass<ImageType, SegmentationImageTy
 	typename ThresholdImageFilterType::Pointer thresholdFilterLow
 	= ThresholdImageFilterType::New();
 	thresholdFilterLow->SetInput(inputImage);
+	typename ImageType::PixelType constantPixel;
 	if (std::numeric_limits<typename ImageType::PixelType>::lowest() > -1024)
 	{
 		thresholdFilterLow->ThresholdBelow(std::numeric_limits<typename ImageType::PixelType>::lowest());
 		thresholdFilterLow->SetOutsideValue(std::numeric_limits<typename ImageType::PixelType>::lowest());
+		constantPixel = std::numeric_limits<typename ImageType::PixelType>::lowest();
 	}
 	else
 	{
+		constantPixel = -1024;
 		thresholdFilterLow->ThresholdBelow(-1024);
 		thresholdFilterLow->SetOutsideValue(-1024);
 	}
@@ -111,7 +116,6 @@ typename SegmentationImageType::Pointer BodyClass<ImageType, SegmentationImageTy
 	extendRegion[0] = 10;
 	extendRegion[1] = 10;
 	extendRegion[2] = 0;
-	typename ImageType::PixelType constantPixel = -1024;
 
 	typedef itk::ConstantPadImageFilter <ImageType, ImageType> ConstantPadImageFilterType;
 	typename ConstantPadImageFilterType::Pointer padFilter = ConstantPadImageFilterType::New();
@@ -193,6 +197,12 @@ int BodyClass<ImageType, SegmentationImageType>::computeBestThresholdValue(Image
 		index.Fill(idDiag);
 		int currentValue = slicegraySS->GetOutput()->GetPixel(index);
 
+		if (prevValue > 0 && currentValue > 0)
+		{
+			break; //we are already inside the body; it makes no sense to run further as we are only interested in the first high gradient
+			//running further bares the risk to get a very high gradient at the border between lung and vertebra, which leads to a wrong trheshold
+		}
+
 		if( abs(currentValue - prevValue) > diff)
 		{
 			min	=	prevValue;
@@ -211,6 +221,13 @@ int BodyClass<ImageType, SegmentationImageType>::computeBestThresholdValue(Image
 
 	}
 	int threshold = max - int(diff * 0.5);
+
+#ifdef __DEBUG
+	std::cout << "startMask: " << startMask << std::endl;
+	std::cout << "min: " << min << std::endl;
+	std::cout << "max: " << max << std::endl;
+	std::cout << "threshold: " << threshold << std::endl;
+#endif
 
 	return threshold;
 }
