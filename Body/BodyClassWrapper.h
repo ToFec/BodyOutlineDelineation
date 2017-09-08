@@ -20,8 +20,11 @@ public:
 
 	ImageWrapper* runSegmentation();
 
+	double getComputationTime();
+
 private:
 	ImageWrapper* imgwrp = 0;
+	double computationTime = 0.0;
 };
 
 #endif /* BODY_BODYCLASSWRAPPER_H_ */

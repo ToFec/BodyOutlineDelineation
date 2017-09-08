@@ -7,6 +7,7 @@
 //============================================================================
 
 #include <iostream>
+#include <fstream>
 #include <Utils.h>
 #include <ImageWrapper.h>
 #include <ImageFactory.h>
@@ -27,8 +28,18 @@ int main(int argc, char ** argv)
 	BodyClassWrapper bodyClassWrp(imgwrp);
 	ImageWrapper* outputImg = bodyClassWrp.runSegmentation();
 
-
 	std::string outputFileName = std::string(argv[2]);
 	outputImg->saveImage(outputFileName);
+
+	if (argc > 3)
+	{
+		double computationTime = bodyClassWrp.getComputationTime();
+		std::string metaInfFile = std::string(argv[3]);
+		ofstream myfile;
+		myfile.open(metaInfFile.c_str());
+		myfile << "computationTime:" << computationTime;
+		myfile.close();
+	}
+
 	return 0;
 }

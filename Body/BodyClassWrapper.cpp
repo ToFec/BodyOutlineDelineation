@@ -21,7 +21,7 @@ ImageWrapper* BodyClassWrapper::runSegmentation()
 {
 	int dimension = imgwrp->getDimensions();
 	std::string type = imgwrp->getType();
-
+	double timeNeeedInSecons = 0.0;
 	ImageWrapper* outputImg = 0;
 	if (dimension == 2)
 	{
@@ -33,6 +33,7 @@ ImageWrapper* BodyClassWrapper::runSegmentation()
 			BodyClass<ImageType, SegmentationImageType> bc;
 			Image<ImageType>* inputImg = (Image<ImageType>*)imgwrp;
 			algoOutput = bc.run_BodyExtraction(inputImg->getItkImage());
+			timeNeeedInSecons = bc.getTimeNeededInSeconds();
 		}
 		else if (type == "unsigned short")
 		{
@@ -40,6 +41,7 @@ ImageWrapper* BodyClassWrapper::runSegmentation()
 			BodyClass<ImageType, SegmentationImageType> bc;
 			Image<ImageType>* inputImg = (Image<ImageType>*)imgwrp;
 			algoOutput = bc.run_BodyExtraction(inputImg->getItkImage());
+			timeNeeedInSecons = bc.getTimeNeededInSeconds();
 		}
 		else if (type == "int")
 		{
@@ -47,6 +49,7 @@ ImageWrapper* BodyClassWrapper::runSegmentation()
 			BodyClass<ImageType, SegmentationImageType> bc;
 			Image<ImageType>* inputImg = (Image<ImageType>*)imgwrp;
 			algoOutput = bc.run_BodyExtraction(inputImg->getItkImage());
+			timeNeeedInSecons = bc.getTimeNeededInSeconds();
 		}
 		else if (type == "unsigned int")
 		{
@@ -54,6 +57,7 @@ ImageWrapper* BodyClassWrapper::runSegmentation()
 			BodyClass<ImageType, SegmentationImageType> bc;
 			Image<ImageType>* inputImg = (Image<ImageType>*)imgwrp;
 			algoOutput = bc.run_BodyExtraction(inputImg->getItkImage());
+			timeNeeedInSecons = bc.getTimeNeededInSeconds();
 		}
 		else if (type == "float")
 		{
@@ -61,6 +65,7 @@ ImageWrapper* BodyClassWrapper::runSegmentation()
 			BodyClass<ImageType, SegmentationImageType> bc;
 			Image<ImageType>* inputImg = (Image<ImageType>*)imgwrp;
 			algoOutput = bc.run_BodyExtraction(inputImg->getItkImage());
+			timeNeeedInSecons = bc.getTimeNeededInSeconds();
 		}
 		else if (type == "double")
 		{
@@ -68,6 +73,7 @@ ImageWrapper* BodyClassWrapper::runSegmentation()
 			BodyClass<ImageType, SegmentationImageType> bc;
 			Image<ImageType>* inputImg = (Image<ImageType>*)imgwrp;
 			algoOutput = bc.run_BodyExtraction(inputImg->getItkImage());
+			timeNeeedInSecons = bc.getTimeNeededInSeconds();
 		}
 		else if (type == "char")
 		{
@@ -75,6 +81,7 @@ ImageWrapper* BodyClassWrapper::runSegmentation()
 			BodyClass<ImageType, SegmentationImageType> bc;
 			Image<ImageType>* inputImg = (Image<ImageType>*)imgwrp;
 			algoOutput = bc.run_BodyExtraction(inputImg->getItkImage());
+			timeNeeedInSecons = bc.getTimeNeededInSeconds();
 		}
 		else if (type == "unsigned char")
 		{
@@ -82,6 +89,7 @@ ImageWrapper* BodyClassWrapper::runSegmentation()
 			BodyClass<ImageType, SegmentationImageType> bc;
 			Image<ImageType>* inputImg = (Image<ImageType>*)imgwrp;
 			algoOutput = bc.run_BodyExtraction(inputImg->getItkImage());
+			timeNeeedInSecons = bc.getTimeNeededInSeconds();
 		}
 		outputImg = new Image<SegmentationImageType>(algoOutput);
 	}
@@ -96,6 +104,7 @@ ImageWrapper* BodyClassWrapper::runSegmentation()
 			BodyClass<ImageType, SegmentationImageType> bc;
 			Image<ImageType>* inputImg = (Image<ImageType>*)imgwrp;
 			algoOutput = bc.run_BodyExtraction(inputImg->getItkImage());
+			timeNeeedInSecons = bc.getTimeNeededInSeconds();
 		}
 		else if (type == "unsigned short")
 		{
@@ -103,6 +112,7 @@ ImageWrapper* BodyClassWrapper::runSegmentation()
 			BodyClass<ImageType, SegmentationImageType> bc;
 			Image<ImageType>* inputImg = (Image<ImageType>*)imgwrp;
 			algoOutput = bc.run_BodyExtraction(inputImg->getItkImage());
+			timeNeeedInSecons = bc.getTimeNeededInSeconds();
 		}
 		else if (type == "int")
 		{
@@ -110,6 +120,7 @@ ImageWrapper* BodyClassWrapper::runSegmentation()
 			BodyClass<ImageType, SegmentationImageType> bc;
 			Image<ImageType>* inputImg = (Image<ImageType>*)imgwrp;
 			algoOutput = bc.run_BodyExtraction(inputImg->getItkImage());
+			timeNeeedInSecons = bc.getTimeNeededInSeconds();
 		}
 		else if (type == "unsigned int")
 		{
@@ -117,6 +128,7 @@ ImageWrapper* BodyClassWrapper::runSegmentation()
 			BodyClass<ImageType, SegmentationImageType> bc;
 			Image<ImageType>* inputImg = (Image<ImageType>*)imgwrp;
 			algoOutput = bc.run_BodyExtraction(inputImg->getItkImage());
+			timeNeeedInSecons = bc.getTimeNeededInSeconds();
 		}
 		else if (type == "float")
 		{
@@ -124,6 +136,7 @@ ImageWrapper* BodyClassWrapper::runSegmentation()
 			BodyClass<ImageType, SegmentationImageType> bc;
 			Image<ImageType>* inputImg = (Image<ImageType>*)imgwrp;
 			algoOutput = bc.run_BodyExtraction(inputImg->getItkImage());
+			timeNeeedInSecons = bc.getTimeNeededInSeconds();
 		}
 		else if (type == "double")
 		{
@@ -131,6 +144,7 @@ ImageWrapper* BodyClassWrapper::runSegmentation()
 			BodyClass<ImageType, SegmentationImageType> bc;
 			Image<ImageType>* inputImg = (Image<ImageType>*)imgwrp;
 			algoOutput = bc.run_BodyExtraction(inputImg->getItkImage());
+			timeNeeedInSecons = bc.getTimeNeededInSeconds();
 		}
 		else if (type == "char")
 		{
@@ -138,6 +152,7 @@ ImageWrapper* BodyClassWrapper::runSegmentation()
 			BodyClass<ImageType, SegmentationImageType> bc;
 			Image<ImageType>* inputImg = (Image<ImageType>*)imgwrp;
 			algoOutput = bc.run_BodyExtraction(inputImg->getItkImage());
+			timeNeeedInSecons = bc.getTimeNeededInSeconds();
 		}
 		else if (type == "unsigned char")
 		{
@@ -145,8 +160,15 @@ ImageWrapper* BodyClassWrapper::runSegmentation()
 			BodyClass<ImageType, SegmentationImageType> bc;
 			Image<ImageType>* inputImg = (Image<ImageType>*)imgwrp;
 			algoOutput = bc.run_BodyExtraction(inputImg->getItkImage());
+			timeNeeedInSecons = bc.getTimeNeededInSeconds();
 		}
 		outputImg = new Image<SegmentationImageType>(algoOutput);
 	}
+	computationTime = timeNeeedInSecons;
 	return outputImg;
+}
+
+double BodyClassWrapper::getComputationTime()
+{
+	return computationTime;
 }
