@@ -30,6 +30,7 @@
 #include <itkConvolutionImageFilter.h>
 #include <itkMaskImageFilter.h>
 #include <itkKernelImageFilter.h>
+#include <itkPasteImageFilter.h>
 #include <ctime>
 #include <fstream>
 #include <iostream>
@@ -164,16 +165,18 @@ typename SegmentationImageType::Pointer BodyClass<ImageType,
 		constantPixel = -1024;
 	}
 
-	std::cout << "constantPixel: " << constantPixel << std::endl;
 	padFilter->SetConstant(constantPixel);
 	padFilter->Update();
 
 	typename SegmentationImageType::Pointer segmentedBody = getBody(
 			padFilter->GetOutput(), threshold);
 	typedef itk::CropImageFilter<SegmentationImageType, SegmentationImageType> CropImageFilterType;
+	/*
+	 * we do not remove the whole padding, because the plastimatch convert creates wrong sturcture set if the contour 'touches' on both sides the border of the image
+	 */
 	typename SegmentationImageType::SizeType cropSize;
-	cropSize[0] = 10;
-	cropSize[1] = 10;
+	cropSize[0] = 9;
+	cropSize[1] = 9;
 	cropSize[2] = 0;
 	typename CropImageFilterType::Pointer cropFilter =
 			CropImageFilterType::New();
@@ -197,6 +200,7 @@ int BodyClass<ImageType, SegmentationImageType>::computeBestThresholdValue(
 			inputImage->GetLargestPossibleRegion().GetIndex();
 
 	startMask[2] = int((sizeMask[2] + 0.0) / 2);
+
 	sizeMask[2] = 0;
 
 	// Create the region object to extract
@@ -234,24 +238,27 @@ int BodyClass<ImageType, SegmentationImageType>::computeBestThresholdValue(
 
 	sizeDiag = (sizeDiag + 0.0) / 2;
 
-	for (int idDiag = 1; idDiag < sizeDiag; idDiag++)
+	for (int idDiag = 1; idDiag < sizeDiag; idDiag+=2)
 	{
 		SliceType::IndexType index;
 		index.Fill(idDiag);
 		int currentValue = slicegraySS->GetOutput()->GetPixel(index);
-
-//		if (prevValue > 0 && currentValue > 0)
-//		{
-//			break; //we are already inside the body; it makes no sense to run further as we are only interested in the first high gradient
-//			//running further bares the risk to get a very high gradient at the border between lung and vertebra, which leads to a wrong trheshold
-//		}
-
-		if (abs(currentValue - prevValue) > diff)
+		if (currentValue > -200)
 		{
-			min = prevValue;
-			max = currentValue;
-			diff = abs(currentValue - prevValue);
+			if (abs(currentValue - prevValue) > diff)
+			{
+				min = prevValue;
+				max = currentValue;
+				diff = abs(currentValue - prevValue);
+			}
+
+			if (prevValue > 0 && currentValue > 0)
+			{
+				break; //we are already inside the body; it makes no sense to run further as we are only interested in the first high gradient
+				//running further bares the risk to get a very high gradient at the border between lung and vertebra, which leads to a wrong trheshold
+			}
 		}
+
 		prevValue = currentValue;
 	}
 
@@ -284,7 +291,6 @@ typename SegmentationImageType::Pointer BodyClass<ImageType,
 	thresholdFilter->SetLowerThreshold(threshold);
 	thresholdFilter->Update();
 
-	std::cout << "threshold: " << threshold << std::endl;
 
 	// 2 - Keep only the biggest label
 	typedef itk::BinaryImageToShapeLabelMapFilter<SegmentationImageType> BinaryImageToShapeLabelMapFilterType;
@@ -339,12 +345,12 @@ typename SegmentationImageType::Pointer BodyClass<ImageType,
 	mask = fillHolesByInvertFilter(labelMapToLabelImageFilter->GetOutput());
 	mask = getLargestConnectedRegion(mask);
 	mask = fillHolesByInvertFilter2D(mask);
-//	mask = fillHolesByInvertFilter(mask);
+	mask = fillHolesByInvertFilter(mask);
 
-	Image<SegmentationImageType>* holesFilledImg = new Image<
-			SegmentationImageType>(mask);
-	holesFilledImg->saveImage("holesFilled.nrrd");
-	delete holesFilledImg;
+//	Image<SegmentationImageType>* holesFilledImg = new Image<
+//			SegmentationImageType>(mask);
+//	holesFilledImg->saveImage("holesFilled.nrrd");
+//	delete holesFilledImg;
 
 	mask = cleanBodySegmentedVolume(mask);
 	return mask;
@@ -386,7 +392,6 @@ typename SegmentationImageType::Pointer BodyClass<ImageType,
 	int numLabels =
 			binaryImageToShapeLabelMapFilterCheck->GetOutput()->GetNumberOfLabelObjects();
 
-	std::cout << "numLabels in clean method: " << numLabels << std::endl;
 	std::vector<int> labelsArrayToRemove;
 	int largestLabelSize = 0;
 	int largestLabelID = 0;
@@ -600,7 +605,6 @@ typename SegmentationImageType::Pointer BodyClass<ImageType,
 		SegmentationImageType>::fillHolesByInvertFilter(
 		SegmentationImageType* inputMask)
 {
-	std::cout << " fillHolesByInvertFilter " << std::endl;
 	typedef itk::RescaleIntensityImageFilter<SegmentationImageType,
 			SegmentationImageType> RescaleFilterType;
 	typename RescaleFilterType::Pointer rescaleFilter =
@@ -626,7 +630,6 @@ typename SegmentationImageType::Pointer BodyClass<ImageType,
 
 	int numLabels =
 			binaryImageToShapeLabelMapFilterMask->GetOutput()->GetNumberOfLabelObjects();
-	std::cout << " numLabels " << numLabels << std::endl;
 	int largestLabelID = -1;
 	int largestLabelSize = -1;
 	std::vector<int> labelsArray;
@@ -689,7 +692,6 @@ typename SegmentationImageType::Pointer BodyClass<ImageType,
 
 	int numLabels =
 			binaryImageToShapeLabelMapFilterMask->GetOutput()->GetNumberOfLabelObjects();
-	std::cout << " numLabels " << numLabels << std::endl;
 	int largestLabelID = -1;
 	int largestLabelSize = -1;
 	std::vector<int> labelsArray;
@@ -739,7 +741,8 @@ typename SegmentationImageType::Pointer BodyClass<ImageType,
 		SegmentationImageType* inputMask)
 {
 
-	std::cout << " fillHolesByInvertFilter2D " << std::endl;
+	int smoothingFilerSizeZ = 4;
+
 	typedef itk::RescaleIntensityImageFilter<SegmentationImageType,
 			SegmentationImageType> RescaleFilterType;
 	typename RescaleFilterType::Pointer rescaleFilter =
@@ -779,6 +782,9 @@ typename SegmentationImageType::Pointer BodyClass<ImageType,
 			invertIntensityFilter->GetOutput()->GetLargestPossibleRegion().GetSize()[1];
 	sizeBinarySlice[2] = 0;
 	int nuOfPixPerSlice = sizeBinarySlice[1] * sizeBinarySlice[0];
+	int smoothFilterstartSliceId = -1;
+	std::vector<int> smoothStartSliceVec;
+	std::vector<int> smoothEndSliceVec;
 	for (int sliceID = 0; sliceID < numSlices; sliceID++)
 	{
 		// Extract Slice
@@ -815,82 +821,104 @@ typename SegmentationImageType::Pointer BodyClass<ImageType,
 							labelID);
 			labelsArrayToRemove2D.push_back(labelObject->GetLabel());
 			int nuOfPixs = labelObject->GetNumberOfPixels();
-			totalNumberOfPix+=nuOfPixs;
+			totalNumberOfPix += nuOfPixs;
 			if (nuOfPixs > largestLabelSize)
 			{
 				largestLabelID = labelObject->GetLabel();
 				largestLabelSize = nuOfPixs;
 			}
 		}
-		std::cout << "sliceID: " << sliceID << std::endl;
-		std::cout << "nuOfPixPerSlice -  totalNumberOfPix: " << nuOfPixPerSlice -  totalNumberOfPix << std::endl;
 		// Remove all the other Labels
-		// but only when we are in the head region; this means that the background occupies more pixels and is approximately larger than 210000
-		if (nuOfPixPerSlice -  totalNumberOfPix < 40000)
+		// but only when we are in the head region;
+		if (nuOfPixPerSlice - totalNumberOfPix < 40000)
 		{
-			std::vector<int>::iterator iterLabel =
-					labelsArrayToRemove2D.begin();
-
-			for (; iterLabel != labelsArrayToRemove2D.end(); iterLabel++)
+			if (smoothFilterstartSliceId == -1)
 			{
-				if ((*iterLabel) != largestLabelID)
-				{
-					binaryImageToShapeLabelMapFilter2D->GetOutput()->RemoveLabel(
-							(*iterLabel));
-				}
-			}
-
-			typedef itk::LabelMapToBinaryImageFilter<
-					typename BinaryImageToShapeLabelMapFilterType2D::OutputImageType,
-					TwoDImageType> LabelMapToLabelImageFilterType;
-			typename LabelMapToLabelImageFilterType::Pointer labelMapToLabelImageFilterSliceBack =
-					LabelMapToLabelImageFilterType::New();
-
-			labelMapToLabelImageFilterSliceBack->SetInput(
-					binaryImageToShapeLabelMapFilter2D->GetOutput());
-			labelMapToLabelImageFilterSliceBack->SetForegroundValue(255);
-			labelMapToLabelImageFilterSliceBack->Update();
-
-			// Set the slice again
-			typename SegmentationImageType::RegionType regionToPutBackBinarySlice;
-			typename SegmentationImageType::SizeType sizeBinaryBackSlice;
-			typename SegmentationImageType::IndexType startBinaryBackSlice;
-
-			startBinaryBackSlice.Fill(0);
-			startBinaryBackSlice[0] = startBinarySlice[0];
-			startBinaryBackSlice[1] = startBinarySlice[1];
-			startBinaryBackSlice[2] = sliceID;
-			sizeBinaryBackSlice[0] = sizeBinarySlice[0];
-			sizeBinaryBackSlice[1] = sizeBinarySlice[1];
-			sizeBinaryBackSlice[2] = 1;
-
-			regionToPutBackBinarySlice.SetIndex(startBinaryBackSlice);
-			regionToPutBackBinarySlice.SetSize(sizeBinaryBackSlice);
-
-			itk::ImageRegionIterator<SegmentationImageType> volumeIterator(
-					invertIntensityFilter->GetOutput(),
-					regionToPutBackBinarySlice);
-			typename TwoDImageType::RegionType regionSlice;
-			typename TwoDImageType::SizeType sizeSlice =
-					BinarySlice->GetOutput()->GetLargestPossibleRegion().GetSize();
-			typename TwoDImageType::IndexType startSlice =
-					BinarySlice->GetOutput()->GetLargestPossibleRegion().GetIndex();
-
-			regionSlice.SetIndex(startSlice);
-			regionSlice.SetSize(sizeSlice);
-			itk::ImageRegionIterator<TwoDImageType> sliceIterator(
-					labelMapToLabelImageFilterSliceBack->GetOutput(),
-					regionSlice);
-
-			while (!volumeIterator.IsAtEnd() && !sliceIterator.IsAtEnd())
-			{
-				volumeIterator.Set(sliceIterator.Get());
-
-				++volumeIterator;
-				++sliceIterator;
+				smoothFilterstartSliceId = sliceID;
 			}
 		}
+		else if (smoothFilterstartSliceId != -1)
+		{
+			if (sliceID - smoothFilterstartSliceId > smoothingFilerSizeZ)
+			{
+				smoothStartSliceVec.push_back(smoothFilterstartSliceId);
+				smoothEndSliceVec.push_back(sliceID);
+			}
+			smoothFilterstartSliceId = -1;
+		}
 
+		std::vector<int>::iterator iterLabel =
+							labelsArrayToRemove2D.begin();
+
+					for (; iterLabel != labelsArrayToRemove2D.end(); iterLabel++)
+					{
+						if ((*iterLabel) != largestLabelID)
+						{
+							binaryImageToShapeLabelMapFilter2D->GetOutput()->RemoveLabel(
+									(*iterLabel));
+						}
+					}
+
+					typedef itk::LabelMapToBinaryImageFilter<
+							typename BinaryImageToShapeLabelMapFilterType2D::OutputImageType,
+							TwoDImageType> LabelMapToLabelImageFilterType;
+					typename LabelMapToLabelImageFilterType::Pointer labelMapToLabelImageFilterSliceBack =
+							LabelMapToLabelImageFilterType::New();
+
+					labelMapToLabelImageFilterSliceBack->SetInput(
+							binaryImageToShapeLabelMapFilter2D->GetOutput());
+					labelMapToLabelImageFilterSliceBack->SetForegroundValue(255);
+					labelMapToLabelImageFilterSliceBack->Update();
+
+					// Set the slice again
+					typename SegmentationImageType::RegionType regionToPutBackBinarySlice;
+					typename SegmentationImageType::SizeType sizeBinaryBackSlice;
+					typename SegmentationImageType::IndexType startBinaryBackSlice;
+
+					startBinaryBackSlice.Fill(0);
+					startBinaryBackSlice[0] = startBinarySlice[0];
+					startBinaryBackSlice[1] = startBinarySlice[1];
+					startBinaryBackSlice[2] = sliceID;
+					sizeBinaryBackSlice[0] = sizeBinarySlice[0];
+					sizeBinaryBackSlice[1] = sizeBinarySlice[1];
+					sizeBinaryBackSlice[2] = 1;
+
+					regionToPutBackBinarySlice.SetIndex(startBinaryBackSlice);
+					regionToPutBackBinarySlice.SetSize(sizeBinaryBackSlice);
+
+					itk::ImageRegionIterator<SegmentationImageType> volumeIterator(
+							invertIntensityFilter->GetOutput(),
+							regionToPutBackBinarySlice);
+					typename TwoDImageType::RegionType regionSlice;
+					typename TwoDImageType::SizeType sizeSlice =
+							BinarySlice->GetOutput()->GetLargestPossibleRegion().GetSize();
+					typename TwoDImageType::IndexType startSlice =
+							BinarySlice->GetOutput()->GetLargestPossibleRegion().GetIndex();
+
+					regionSlice.SetIndex(startSlice);
+					regionSlice.SetSize(sizeSlice);
+					itk::ImageRegionIterator<TwoDImageType> sliceIterator(
+							labelMapToLabelImageFilterSliceBack->GetOutput(),
+							regionSlice);
+
+					while (!volumeIterator.IsAtEnd() && !sliceIterator.IsAtEnd())
+					{
+						volumeIterator.Set(sliceIterator.Get());
+
+						++volumeIterator;
+						++sliceIterator;
+					}
+
+	}
+
+	if (smoothFilterstartSliceId != -1)
+	{
+		int sliceID = numSlices - 1;
+		if (sliceID - smoothFilterstartSliceId > smoothingFilerSizeZ)
+		{
+			smoothStartSliceVec.push_back(smoothFilterstartSliceId);
+			smoothEndSliceVec.push_back(sliceID);
+		}
 	}
 
 	typename InvertIntensityImageFilterType::Pointer invertIntensityFilter02 =
@@ -899,26 +927,41 @@ typename SegmentationImageType::Pointer BodyClass<ImageType,
 	invertIntensityFilter02->SetMaximum(255);
 	invertIntensityFilter02->Update();
 
-//	typedef itk::MedianImageFilter<SegmentationImageType, SegmentationImageType> SmoothingFiltertype;
-//	typename SmoothingFiltertype::Pointer smoothingFilter =
-//			SmoothingFiltertype::New();
-//	smoothingFilter->SetInput(invertIntensityFilter02->GetOutput());
-//
-//	typename SegmentationImageType::SizeType indexRadius;
-//	indexRadius[0] = 0;
-//	indexRadius[1] = 0;
-//	indexRadius[2] = 3;
-//	smoothingFilter->SetRadius(indexRadius);
-//
-//	smoothingFilter->Update();
-//
-//	typedef itk::BinaryDilateImageFilter<SegmentationImageType,
-//			SegmentationImageType, FlatStructuringElementType> BinaryDilateImageFilterType;
-//	typename BinaryDilateImageFilterType::Pointer dilateFilter =
-//			BinaryDilateImageFilterType::New();
-//	dilateFilter->SetInput(invertIntensityFilter02->GetOutput());
-//	dilateFilter->SetKernel(flatstructuringElement);
-//	dilateFilter->Update();
+	typedef itk::MedianImageFilter<SegmentationImageType, SegmentationImageType> SmoothingFiltertype;
+	typename SmoothingFiltertype::Pointer smoothingFilter =
+			SmoothingFiltertype::New();
+	smoothingFilter->SetInput(invertIntensityFilter02->GetOutput());
+
+	typename SegmentationImageType::SizeType indexRadius;
+	indexRadius[0] = 0;
+	indexRadius[1] = 0;
+	indexRadius[2] = smoothingFilerSizeZ;
+	smoothingFilter->SetRadius(indexRadius);
+
+	for (int i = 0; i < smoothEndSliceVec.size(); i++)
+	{
+		startBinarySlice[2] = smoothStartSliceVec[i];
+		sizeBinarySlice[2] = smoothEndSliceVec[i] - smoothStartSliceVec[i];
+		typename SegmentationImageType::RegionType smoothFilterRegion(
+				startBinarySlice, sizeBinarySlice);
+		smoothingFilter->GetOutput()->SetRequestedRegion(smoothFilterRegion);
+		smoothingFilter->Update();
+
+		itk::ImageRegionIterator<SegmentationImageType> invertIntensityIterator(
+				invertIntensityFilter02->GetOutput(), smoothFilterRegion);
+
+		itk::ImageRegionIterator<SegmentationImageType> smoothFilterIterator(
+				smoothingFilter->GetOutput(), smoothFilterRegion);
+
+		while (!invertIntensityIterator.IsAtEnd()
+				&& !smoothFilterIterator.IsAtEnd())
+		{
+			invertIntensityIterator.Set(smoothFilterIterator.Get());
+			++invertIntensityIterator;
+			++smoothFilterIterator;
+		}
+
+	}
 
 	return invertIntensityFilter02->GetOutput();
 }
