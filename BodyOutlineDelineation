@@ -1,0 +1,20 @@
+#!/bin/bash
+
+if [ $# -lt 3 ]
+ then
+ exit 1
+fi
+
+inputImage=$1
+outputFileName=$2
+metaInfFile=$3
+
+plastimatch resample --input $inputImage --spacing "1 1 2" --output tmp.nrrd
+
+/home/fechter/workspace/BodyOutlineDelineation/build/src/BodyOutlineDelineation tmp.nrrd tmpOut.nrrd $metaInfFile
+
+plastimatch resample --input tmpOut.nrrd --fixed $inputImage --output tmpOut2.nrrd
+plastimatch segment --input tmpOut2.nrrd --lower-threshold 1 --output-img $outputFileName
+
+rm tmpOut.nrrd tmpOut2.nrrd tmp.nrrd
+exit 0
