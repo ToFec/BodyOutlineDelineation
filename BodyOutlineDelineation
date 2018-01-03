@@ -26,12 +26,14 @@ plastimatch resample --input $inputImage --spacing "1 1 2" --output tmp.nrrd
 /home/fechter/workspace/BodyOutlineDelineation/build/src/BodyOutlineDelineation tmp.nrrd tmpOut.nrrd $metaInfFile
 
 #plastimatch resample --input tmpOut.nrrd --fixed $inputImage --output tmpOut2.nrrd
-plastimatch resample --input tmpOut.nrrd --dim "$newDim0 $newDim1 $newDim2" --spacing "${inputSpacing[0]} ${inputSpacing[1]} ${inputSpacing[2]}" --origin "$newOrigin0 $newOrigin1 $newOrigin2" --output tmpOut2.nrrd
-plastimatch segment --input tmpOut2.nrrd --lower-threshold 1 --output-img $outputFileName
+# we have to enlarge the output image because the rtstruct converter fails when the contour touches the image boundary
+plastimatch resample --input tmpOut.nrrd --dim "$newDim0 $newDim1 $newDim2" --spacing "${inputSpacing[0]} ${inputSpacing[1]} ${inputSpacing[2]}" --interpolation nn --origin "$newOrigin0 $newOrigin1 $newOrigin2" --output $outputFileName
+#plastimatch segment --input tmpOut2.nrrd --lower-threshold 1 --output-img $outputFileName
 
 #plastimatch segment --input tmpOut2.nrrd --lower-threshold 1 --output-img tmpOut.nrrd
 
 #plastimatch resample --input tmpOut.nrrd --dim "$newDim0 $newDim1 $newDim2" --output $outputFileName
 
-rm tmpOut.nrrd tmpOut2.nrrd tmp.nrrd
+#rm tmpOut.nrrd tmpOut2.nrrd tmp.nrrd
+rm tmpOut.nrrd tmp.nrrd
 exit 0

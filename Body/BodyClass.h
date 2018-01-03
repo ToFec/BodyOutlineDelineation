@@ -32,6 +32,7 @@
 #include <itkKernelImageFilter.h>
 #include <itkPasteImageFilter.h>
 #include <itkResampleImageFilter.h>
+#include <itkZeroFluxNeumannPadImageFilter.h>
 #include <ctime>
 #include <fstream>
 #include <iostream>
@@ -143,6 +144,19 @@ typename SegmentationImageType::Pointer BodyClass<ImageType,
 
 	int threshold = computeBestThresholdValue(thresholdFilterHigh->GetOutput());
 
+	typename ImageType::SizeType extendRegionMirror;
+	extendRegionMirror[0] = 0;
+	extendRegionMirror[1] = 0;
+	extendRegionMirror[2] = 10;
+
+	typedef itk::ZeroFluxNeumannPadImageFilter<ImageType, ImageType> MirrorPadImageFilterType;
+	typename MirrorPadImageFilterType::Pointer mirrorPadFilter =
+			MirrorPadImageFilterType::New();
+	mirrorPadFilter->SetInput(thresholdFilterHigh->GetOutput());
+	mirrorPadFilter->SetPadLowerBound(extendRegionMirror);
+	mirrorPadFilter->SetPadUpperBound(extendRegionMirror);
+	mirrorPadFilter->Update();
+
 	typename ImageType::SizeType extendRegion;
 	extendRegion[0] = 10;
 	extendRegion[1] = 10;
@@ -151,7 +165,7 @@ typename SegmentationImageType::Pointer BodyClass<ImageType,
 	typedef itk::ConstantPadImageFilter<ImageType, ImageType> ConstantPadImageFilterType;
 	typename ConstantPadImageFilterType::Pointer padFilter =
 			ConstantPadImageFilterType::New();
-	padFilter->SetInput(thresholdFilterHigh->GetOutput());
+	padFilter->SetInput(mirrorPadFilter->GetOutput());
 	padFilter->SetPadLowerBound(extendRegion);
 	padFilter->SetPadUpperBound(extendRegion);
 
@@ -179,12 +193,13 @@ typename SegmentationImageType::Pointer BodyClass<ImageType,
 	typename SegmentationImageType::SizeType cropSize;
 	cropSize[0] = 10;
 	cropSize[1] = 10;
-	cropSize[2] = 0;
+	cropSize[2] = 10;
 	typename CropImageFilterType::Pointer cropFilter =
 			CropImageFilterType::New();
 	cropFilter->SetInput(segmentedBody);
 	cropFilter->SetBoundaryCropSize(cropSize);
 	cropFilter->Update();
+
 
 	return cropFilter->GetOutput();
 }
@@ -450,6 +465,8 @@ typename SegmentationImageType::Pointer BodyClass<ImageType,
 	startBinarySlice[1] =
 			labelMapToLabelImageFilterMask->GetOutput()->GetLargestPossibleRegion().GetIndex()[1];
 
+	int sliceOffset = labelMapToLabelImageFilterMask->GetOutput()->GetLargestPossibleRegion().GetIndex()[2];
+
 	sizeBinarySlice[0] =
 			labelMapToLabelImageFilterMask->GetOutput()->GetLargestPossibleRegion().GetSize()[0];
 	sizeBinarySlice[1] =
@@ -462,7 +479,7 @@ typename SegmentationImageType::Pointer BodyClass<ImageType,
 	for (int sliceID = 0; sliceID < numSlices; sliceID++)
 	{
 		// Extract Slice
-		startBinarySlice[2] = sliceID;
+		startBinarySlice[2] = sliceID + sliceOffset;
 		regionToExtractBinarySlice.SetIndex(startBinarySlice);
 		regionToExtractBinarySlice.SetSize(sizeBinarySlice);
 		BinarySlice->SetExtractionRegion(regionToExtractBinarySlice);
@@ -561,7 +578,7 @@ typename SegmentationImageType::Pointer BodyClass<ImageType,
 		startBinaryBackSlice.Fill(0);
 		startBinaryBackSlice[0] = startBinarySlice[0];
 		startBinaryBackSlice[1] = startBinarySlice[1];
-		startBinaryBackSlice[2] = sliceID;
+		startBinaryBackSlice[2] = sliceID + sliceOffset;
 		sizeBinaryBackSlice[0] = sizeBinarySlice[0];
 		sizeBinaryBackSlice[1] = sizeBinarySlice[1];
 		sizeBinaryBackSlice[2] = 1;
@@ -744,7 +761,6 @@ typename SegmentationImageType::Pointer BodyClass<ImageType,
 		SegmentationImageType>::fillHolesByInvertFilter2D(
 		SegmentationImageType* inputMask)
 {
-
 	int smoothingFilerSizeZ = 4;
 
 	typedef itk::RescaleIntensityImageFilter<SegmentationImageType,
@@ -780,6 +796,7 @@ typename SegmentationImageType::Pointer BodyClass<ImageType,
 	startBinarySlice[1] =
 			invertIntensityFilter->GetOutput()->GetLargestPossibleRegion().GetIndex()[1];
 
+	int sliceOffset = invertIntensityFilter->GetOutput()->GetLargestPossibleRegion().GetIndex()[2];
 	sizeBinarySlice[0] =
 			invertIntensityFilter->GetOutput()->GetLargestPossibleRegion().GetSize()[0];
 	sizeBinarySlice[1] =
@@ -792,7 +809,7 @@ typename SegmentationImageType::Pointer BodyClass<ImageType,
 	for (int sliceID = 0; sliceID < numSlices; sliceID++)
 	{
 		// Extract Slice
-		startBinarySlice[2] = sliceID;
+		startBinarySlice[2] = sliceID + sliceOffset;
 		regionToExtractBinarySlice.SetIndex(startBinarySlice);
 		regionToExtractBinarySlice.SetSize(sizeBinarySlice);
 		BinarySlice->SetExtractionRegion(regionToExtractBinarySlice);
@@ -838,15 +855,15 @@ typename SegmentationImageType::Pointer BodyClass<ImageType,
 		{
 			if (smoothFilterstartSliceId == -1)
 			{
-				smoothFilterstartSliceId = sliceID;
+				smoothFilterstartSliceId = sliceID + sliceOffset;
 			}
 		}
 		else if (smoothFilterstartSliceId != -1)
 		{
-			if (sliceID - smoothFilterstartSliceId > smoothingFilerSizeZ)
+			if (sliceID + sliceOffset - smoothFilterstartSliceId > smoothingFilerSizeZ)
 			{
 				smoothStartSliceVec.push_back(smoothFilterstartSliceId);
-				smoothEndSliceVec.push_back(sliceID);
+				smoothEndSliceVec.push_back(sliceID + sliceOffset);
 			}
 			smoothFilterstartSliceId = -1;
 		}
@@ -881,7 +898,7 @@ typename SegmentationImageType::Pointer BodyClass<ImageType,
 		startBinaryBackSlice.Fill(0);
 		startBinaryBackSlice[0] = startBinarySlice[0];
 		startBinaryBackSlice[1] = startBinarySlice[1];
-		startBinaryBackSlice[2] = sliceID;
+		startBinaryBackSlice[2] = sliceID + sliceOffset;
 		sizeBinaryBackSlice[0] = sizeBinarySlice[0];
 		sizeBinaryBackSlice[1] = sizeBinarySlice[1];
 		sizeBinaryBackSlice[2] = 1;
@@ -914,7 +931,7 @@ typename SegmentationImageType::Pointer BodyClass<ImageType,
 
 	if (smoothFilterstartSliceId != -1)
 	{
-		int sliceID = numSlices - 1;
+		int sliceID = numSlices + sliceOffset - 1;
 		if (sliceID - smoothFilterstartSliceId > smoothingFilerSizeZ)
 		{
 			smoothStartSliceVec.push_back(smoothFilterstartSliceId);
@@ -963,7 +980,6 @@ typename SegmentationImageType::Pointer BodyClass<ImageType,
 		}
 
 	}
-
 	return invertIntensityFilter02->GetOutput();
 }
 
