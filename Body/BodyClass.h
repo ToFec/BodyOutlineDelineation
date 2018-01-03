@@ -176,12 +176,9 @@ typename SegmentationImageType::Pointer BodyClass<ImageType,
 	tend = time(0);
 	timeNeededSeconds = difftime(tend, tstart);
 
-	/*
-	 * we do not remove the whole padding, because the plastimatch convert creates wrong sturcture set if the contour 'touches' on both sides the border of the image
-	 */
 	typename SegmentationImageType::SizeType cropSize;
-	cropSize[0] = 9;
-	cropSize[1] = 9;
+	cropSize[0] = 10;
+	cropSize[1] = 10;
 	cropSize[2] = 0;
 	typename CropImageFilterType::Pointer cropFilter =
 			CropImageFilterType::New();
