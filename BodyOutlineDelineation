@@ -9,12 +9,29 @@ inputImage=$1
 outputFileName=$2
 metaInfFile=$3
 
+inputDims=($(plastimatch header $inputImage | grep "Size" | grep -e "[0-9]\+" -o | tr '\n' ' '))
+newDim0=$(echo "${inputDims[0]}+10" | bc)
+newDim1=$(echo "${inputDims[1]}+10" | bc)
+newDim2=$(echo "${inputDims[2]}+10" | bc)
+
+inputSpacing=($(plastimatch header $inputImage | grep "Spacing" | grep -e "[0-9.]\+" -o | tr '\n' ' '))
+
+inputOrigin=($(plastimatch header $inputImage | grep "Origin" | grep -e "[0-9.-]\+" -o | tr '\n' ' '))
+newOrigin0=$(echo "${inputOrigin[0]}-(5*${inputSpacing[0]})" | bc)
+newOrigin1=$(echo "${inputOrigin[1]}-(5*${inputSpacing[1]})" | bc)
+newOrigin2=$(echo "${inputOrigin[2]}-(5*${inputSpacing[2]})" | bc)
+
 plastimatch resample --input $inputImage --spacing "1 1 2" --output tmp.nrrd
 
 /home/fechter/workspace/BodyOutlineDelineation/build/src/BodyOutlineDelineation tmp.nrrd tmpOut.nrrd $metaInfFile
 
-plastimatch resample --input tmpOut.nrrd --fixed $inputImage --output tmpOut2.nrrd
+#plastimatch resample --input tmpOut.nrrd --fixed $inputImage --output tmpOut2.nrrd
+plastimatch resample --input tmpOut.nrrd --dim "$newDim0 $newDim1 $newDim2" --spacing "${inputSpacing[0]} ${inputSpacing[1]} ${inputSpacing[2]}" --origin "$newOrigin0 $newOrigin1 $newOrigin2" --output tmpOut2.nrrd
 plastimatch segment --input tmpOut2.nrrd --lower-threshold 1 --output-img $outputFileName
+
+#plastimatch segment --input tmpOut2.nrrd --lower-threshold 1 --output-img tmpOut.nrrd
+
+#plastimatch resample --input tmpOut.nrrd --dim "$newDim0 $newDim1 $newDim2" --output $outputFileName
 
 rm tmpOut.nrrd tmpOut2.nrrd tmp.nrrd
 exit 0
