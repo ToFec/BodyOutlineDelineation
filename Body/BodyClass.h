@@ -200,7 +200,6 @@ typename SegmentationImageType::Pointer BodyClass<ImageType,
 	cropFilter->SetBoundaryCropSize(cropSize);
 	cropFilter->Update();
 
-
 	return cropFilter->GetOutput();
 }
 
@@ -260,10 +259,13 @@ int BodyClass<ImageType, SegmentationImageType>::computeBestThresholdValue(
 		{
 			if (prevValue < 200)
 			{
-				if (prevValue > 0 && currentValue > 0)
+				if (std::numeric_limits<typename ImageType::PixelType>::lowest() > 0) // do this check only for CT images
 				{
-					break; //we are already inside the body; it makes no sense to run further as we are only interested in the first high gradient
-					//running further bares the risk to get a very high gradient at the border between lung and vertebra, which leads to a wrong trheshold
+					if (prevValue > 0 && currentValue > 0)
+					{
+						break; //we are already inside the body; it makes no sense to run further as we are only interested in the first high gradient
+						//running further bares the risk to get a very high gradient at the border between lung and vertebra, which leads to a wrong trheshold
+					}
 				}
 
 				if (abs(currentValue - prevValue) > diff)
@@ -465,7 +467,8 @@ typename SegmentationImageType::Pointer BodyClass<ImageType,
 	startBinarySlice[1] =
 			labelMapToLabelImageFilterMask->GetOutput()->GetLargestPossibleRegion().GetIndex()[1];
 
-	int sliceOffset = labelMapToLabelImageFilterMask->GetOutput()->GetLargestPossibleRegion().GetIndex()[2];
+	int sliceOffset =
+			labelMapToLabelImageFilterMask->GetOutput()->GetLargestPossibleRegion().GetIndex()[2];
 
 	sizeBinarySlice[0] =
 			labelMapToLabelImageFilterMask->GetOutput()->GetLargestPossibleRegion().GetSize()[0];
@@ -796,7 +799,8 @@ typename SegmentationImageType::Pointer BodyClass<ImageType,
 	startBinarySlice[1] =
 			invertIntensityFilter->GetOutput()->GetLargestPossibleRegion().GetIndex()[1];
 
-	int sliceOffset = invertIntensityFilter->GetOutput()->GetLargestPossibleRegion().GetIndex()[2];
+	int sliceOffset =
+			invertIntensityFilter->GetOutput()->GetLargestPossibleRegion().GetIndex()[2];
 	sizeBinarySlice[0] =
 			invertIntensityFilter->GetOutput()->GetLargestPossibleRegion().GetSize()[0];
 	sizeBinarySlice[1] =
@@ -860,7 +864,8 @@ typename SegmentationImageType::Pointer BodyClass<ImageType,
 		}
 		else if (smoothFilterstartSliceId != -1)
 		{
-			if (sliceID + sliceOffset - smoothFilterstartSliceId > smoothingFilerSizeZ)
+			if (sliceID + sliceOffset - smoothFilterstartSliceId
+					> smoothingFilerSizeZ)
 			{
 				smoothStartSliceVec.push_back(smoothFilterstartSliceId);
 				smoothEndSliceVec.push_back(sliceID + sliceOffset);
