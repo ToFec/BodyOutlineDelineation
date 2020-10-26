@@ -198,9 +198,18 @@ typename SegmentationImageType::Pointer BodyClass<ImageType,
 			CropImageFilterType::New();
 	cropFilter->SetInput(segmentedBody);
 	cropFilter->SetBoundaryCropSize(cropSize);
-	cropFilter->Update();
+//	cropFilter->Update();
 
-	return cropFilter->GetOutput();
+	typedef itk::BinaryThresholdImageFilter<SegmentationImageType, SegmentationImageType> BinaryThresholdImageFilterType02;
+	typename BinaryThresholdImageFilterType02::Pointer finalThresholdFilter =
+			BinaryThresholdImageFilterType02::New();
+	finalThresholdFilter->SetInput(cropFilter->GetOutput());
+	finalThresholdFilter->SetInsideValue(1);
+	finalThresholdFilter->SetOutsideValue(0);
+	finalThresholdFilter->SetLowerThreshold(1);
+	finalThresholdFilter->Update();
+
+	return finalThresholdFilter->GetOutput();
 }
 
 template<typename ImageType, typename SegmentationImageType>
